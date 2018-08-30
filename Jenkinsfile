@@ -9,6 +9,7 @@ pipeline {
     stage('lint') {
       steps {
         sh 'python --version'
+        sh 'cat /etc/*-release'
       }
     }
   }
