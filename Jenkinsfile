@@ -8,7 +8,7 @@ pipeline {
   stages {
     stage('lint') {
       steps {
-        sh '/bin/echo HI'
+        sh 'python --version'
       }
     }
   }
