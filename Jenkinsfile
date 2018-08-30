@@ -9,8 +9,7 @@ pipeline {
     stage('lint') {
       steps {
         sh 'apt update && apt install -y python pylint'
-        sh '''pylint Infraero.py
-'''
+        sh 'pylint Infraero.py'
       }
     }
   }
