@@ -3,7 +3,9 @@ pipeline {
   stages {
     stage('lint') {
       steps {
-        sh 'pylint Infraero.py'
+        sh '''#/usr/bin/bash
+
+pylint Infraero.py'''
       }
     }
   }
