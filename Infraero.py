@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/python2
+# pylint: disable=invalid-name
 '''
 Created on 2010-03-20
 
@@ -34,17 +35,20 @@ from HTMLParser import HTMLParser
 import re
 
 class RequestVarsHTMLParser(HTMLParser):
+    """Parser of session variables"""
     def __init__(self):
         HTMLParser.__init__(self)
         self.requestvars = []
 
     def handle_starttag(self, tag, attrs):
+        """Handles tag open and looks for the session data"""
         if tag == 'input':
             dic = dict(attrs)
             if dic.get('name') in ['__VIEWSTATE', '__EVENTVALIDATION']:
                 self.requestvars.append(tuple([dic.get('name'), dic.get('value')]))
 
     def get_request_vars(self):
+        """Returns the session data to be used on other requests"""
         return self.requestvars
 
 class FlightDataHTMLParser(HTMLParser):
@@ -57,10 +61,13 @@ class FlightDataHTMLParser(HTMLParser):
         self.flights = []
         self.pagedate = ''
         self.pagemax = 0
-        self.re_name = re.compile("_([^_]*)(_voo|)$")
-        self.re_page = re.compile("javascript:__doPostBack\('grd_voos','Page\$([0-9]+)'\)")
+        self.re = {
+            "name": re.compile(r"_([^_]*)(_voo|)$"),
+            "page": re.compile(r"javascript:__doPostBack\('grd_voos','Page\$([0-9]+)'\)"),
+            }
 
     def handle_starttag(self, tag, attrs):
+        """Handles tag open and controls what is being evaluated"""
         self.openspan = ''
         if tag == 'span':
             dic = dict(attrs)
@@ -79,31 +86,36 @@ class FlightDataHTMLParser(HTMLParser):
             if tag == "a":
                 dic = dict(attrs)
                 if dic.has_key('href'):
-                    page = self.re_page.search(dic.get('href'))
+                    page = self.re["page"].search(dic.get('href'))
                     if page != None:
                         page = int(page.group(1))
                         if page > self.pagemax:
                             self.pagemax = page
 
     def handle_data(self, data):
+        """Handles tag contents and get values included"""
         if self.openspan == 'lbl_data_pagedate':
             self.pagedate = data
         elif self.openspan != '':
-            key = self.re_name.search(self.openspan).group(1).lower()
+            key = self.re["name"].search(self.openspan).group(1).lower()
             self.flightdata.append(tuple([key, data]))
-            if self.openspan.startswith('grd_voos_ctl') and self.openspan.endswith('STATUS'):
+            if self.openspan.startswith('grd_voos_ctl') \
+                    and self.openspan.endswith('STATUS'):
                 self.flights.append(self.flightdata)
                 self.flightdata = []
         if self.openspan != '':
             self.openspan = ''
 
     def get_flights(self):
+        """Returns the flight data at the page"""
         return self.flights
 
     def get_date(self):
+        """Returns the date included at the page"""
         return self.pagedate
 
     def get_pages(self):
+        """Returns the number of data pages"""
         return self.pagemax
 
 class Harvester(object):
@@ -116,12 +128,15 @@ class Harvester(object):
         self.requestvars = []
 
     def get_date(self):
+        """Returns the date included at the page"""
         return self.pagedate
 
     def get_pages(self):
+        """Returns the number of data pages"""
         return self.pagemax
 
     def request_session_page(self, url):
+        """Requests session page"""
         request = self.opener.open(url, urllib.urlencode(self.requestvars))
         data = request.read()
         parser = RequestVarsHTMLParser()
@@ -130,10 +145,12 @@ class Harvester(object):
         self.requestvars = parser.get_request_vars()
 
     def request_start(self):
+        """Requests session start page"""
         self.pagedate = ''
         self.request_session_page('http://www.infraero.gov.br/voos/index.aspx')
 
     def request_intermediate(self, target):
+        """Requests intermediate session page"""
         manager = 'update|' + target
         self.request_start()
         self.requestvars.append(tuple(['ScriptManager1', manager]))
